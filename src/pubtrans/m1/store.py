@@ -174,7 +174,7 @@ class KernelStore(ProjectStore):
             except BaseException:
                 self.connection.rollback()
                 raise
-        elif current == M1_SCHEMA_VERSION:
+        elif current >= M1_SCHEMA_VERSION:
             self.connection.executescript(M1_SCHEMA)
         else:
             raise StageConflictError(

@@ -21,10 +21,10 @@ experience is one command for a complete book. A future `pubtrans translate`
 command will create or resume a project and continue until a verified PDF or a
 real blocking condition is reached.
 
-## M1 checkpoint status
+## M2 checkpoint status
 
-The M0 v2 preparation/write-back contract remains intact. M1 now also
-implements:
+The M0 v2 preparation/write-back contract and M1 semantic quality kernel remain
+intact. M2 now also implements:
 
 - stable project, prepared-snapshot, paragraph, and translation-unit identities
   that exclude BabelDOC diagnostic IDs;
@@ -61,7 +61,14 @@ implements:
   edit-impact verification and whole-document consistency review;
 - additive schema-3 persistence, immutable stage slots and crash-safe resume;
 - atomic activation of a complete verified release into M0 approvals;
-- 64 passing core, adversarial, recovery and synthetic BabelDOC PDF tests.
+- content-addressed provider-call responses that close the paid-call crash
+  window;
+- fenced expiring leases and stale-worker rejection;
+- explicit transient/permanent retry classification and bounded backoff;
+- immutable call/token/cost budgets reserved before invocation;
+- dependency-aware reuse of unchanged translations after downstream replans;
+- sanitized failure ledgers and schema-4 additive migration;
+- 72 passing core, adversarial, recovery and synthetic BabelDOC PDF tests.
 
 The provider branch is rebased on BabelDOC `v0.6.4` (`17480db`) and has a
 regression test proving that rich-text styling and formula placeholders survive
@@ -70,14 +77,13 @@ when BabelDOC's built-in LLM translator is not used.
 Not yet implemented:
 
 - production model/provider calls and automated terminology retrieval;
-- retry budgets, leases and dependency-aware invalidation;
 - a broader corpus of licensed/synthetic layout fixtures and visual QA gates;
 - the one-command production `pubtrans translate` workflow;
 - the thin `translate-publication-pdf` Skill.
 
-This is not yet an end-user translator. M1 establishes and tests the semantic
-quality kernel; M2 through M5 make it recoverable under remote failures, prove
-real restored-PDF artifacts, and expose the one-command product.
+This is not yet an end-user translator. M2 establishes remote-call recovery;
+M3 through M5 prove real restored-PDF artifacts and expose the one-command
+product.
 
 ## Development
 
@@ -102,6 +108,7 @@ the exact fork commit containing the document-level provider contract.
 
 See [the M0 v2 specification](docs/m0-v2-spec.md),
 [the M1 quality-kernel specification](docs/m1-kernel-spec.md),
+[the M2 recovery-controller specification](docs/m2-recovery-spec.md),
 [architecture](docs/architecture.md), and
 [research notes](docs/research-notes.md). The target runtime is Python 3.10
 through 3.13.
