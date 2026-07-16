@@ -1,6 +1,7 @@
 # Architecture
 
-Status: M0 alpha, high-depth audit revision  
+Status: M0 v2 clean-room checkpoint
+
 Baseline: BabelDOC 0.6.4 (`17480db9df92ddcb37349ce34b312335226e8ec9`)
 
 ## Product boundary
@@ -67,7 +68,7 @@ removed if accepted.
 
 | Milestone | Exit condition |
 | --- | --- |
-| M0: contract | Stable units, immutable approval map, rich-text-safe BabelDOC write-back |
+| M0: contract | Stable prepared-document units, append-only approval revisions, rich-text-safe BabelDOC write-back |
 | M1: kernel | Candidate generation, terminology, context packages, review and adjudication state |
 | M2: recovery | Leases, retries, budgets, precise invalidation and crash recovery |
 | M3: PDF loop | Real fixture PDF from extraction through approved write-back and rendering |

@@ -15,7 +15,7 @@ dependencies = []
 
 [project.optional-dependencies]
 babeldoc = [
-    "BabelDOC @ git+https://github.com/Jace-Planeswalker/BabelDOC.git@9428e54d6b78415b194b8058ba984cc95ef6d5db",
+    "BabelDOC @ git+https://github.com/Jace-Planeswalker/BabelDOC.git@0b3b03ab1ed29c15245dca49f6cb3afece046f95",
 ]
 dev = ["pytest>=8.3", "ruff>=0.9"]
 

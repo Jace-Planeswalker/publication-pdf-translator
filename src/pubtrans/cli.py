@@ -1,4 +1,4 @@
-"""Small M0 command surface."""
+"""Small M0 v2 command surface."""
 
 from __future__ import annotations
 
@@ -6,7 +6,8 @@ import argparse
 import json
 from pathlib import Path
 
-from .state import ProjectState
+from .m0v2.artifacts import PreparedArtifactStore
+from .m0v2.store import ProjectStore
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -23,7 +24,8 @@ def main(argv: list[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
     if args.command == "status":
         database = args.project / "state" / "project.sqlite3"
-        with ProjectState(database) as state:
+        artifacts = PreparedArtifactStore(database.with_suffix(".sqlite3.artifacts"))
+        with ProjectStore(database, artifacts) as state:
             print(json.dumps(state.status(), ensure_ascii=False, sort_keys=True))
         return 0
     raise AssertionError(f"unhandled command: {args.command}")
