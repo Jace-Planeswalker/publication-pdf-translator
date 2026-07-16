@@ -1,6 +1,6 @@
 # Architecture
 
-Status: M0 v2 clean-room checkpoint
+Status: M1 translation-kernel development on the M0 v2 contract
 
 Baseline: BabelDOC 0.6.4 (`17480db9df92ddcb37349ce34b312335226e8ec9`)
 
@@ -69,7 +69,7 @@ removed if accepted.
 | Milestone | Exit condition |
 | --- | --- |
 | M0: contract | Stable prepared-document units, append-only approval revisions, rich-text-safe BabelDOC write-back |
-| M1: kernel | Candidate generation, terminology, context packages, review and adjudication state |
+| M1: kernel | Risk-adaptive isolated candidates, evidence-backed terminology, source context, sequential review, adjudication, Chinese editing, unit and document verification, and atomic release |
 | M2: recovery | Leases, retries, budgets, precise invalidation and crash recovery |
 | M3: PDF loop | Real fixture PDF from extraction through approved write-back and rendering |
 | M4: verification | Text coverage, images, fonts, clipping, overlap and visual regression gates |

@@ -1,0 +1,20 @@
+------------------STRUCTURED REPLY SCHEMA--------------------------
+
+Requests to LLMs include structured reply tools which specify the expected format:
+
+class Analysis_Reply(BaseModel):
+    document_style:str = Field(...,description="The style of the document.")
+    document_tone:str = Field(..., description="The tone of the document.")
+    document_domain:str = Field(..., description="The domain of the document.")
+    document_topic:str = Field(..., description="The topic of the document.")
+    document_register:str = Field(..., description="The register of the document.")
+    intended_audience:str = Field(..., description="Intended audience of the document. Without specifying ethnicity or nationality.")
+    most_likely_purpose:str = Field (..., description="The most likely intended purpose of the document.")
+    most_likely_author_profile: str = Field(..., description="A system prompt like description 'you are....' analyzing the author, their likely degree, estimated knowhow and expertise and past expierience necessary to produce a document like this or better. Avoid alternatives and always choose the higher option. Do not specify nationality or language.")
+
+
+------------------ACTUAL PROMPT--------------------------
+
+Analyze this content coming from a CAT tool (i.e. segmented) and provide document and author analysis in Json Format (precise without ecessive descriptions - no more then 15 words per each key - prefer keywords). Return the answer as a JSON according to provided schema. In your answers do not specify nationality or language name or ethnicity.
+
+[[a list of segments from the sample of the document follows]]

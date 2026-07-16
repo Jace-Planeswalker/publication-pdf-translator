@@ -21,9 +21,10 @@ experience is one command for a complete book. A future `pubtrans translate`
 command will create or resume a project and continue until a verified PDF or a
 real blocking condition is reached.
 
-## M0 v2 checkpoint status
+## M1 checkpoint status
 
-Implemented in this milestone:
+The M0 v2 preparation/write-back contract remains intact. M1 now also
+implements:
 
 - stable project, prepared-snapshot, paragraph, and translation-unit identities
   that exclude BabelDOC diagnostic IDs;
@@ -49,6 +50,18 @@ Implemented in this milestone:
   BabelDOC render, then repeats the full run against the same persisted
   artifact and unit set;
 - a minimal BabelDOC provider patch maintained in the sibling working copy.
+- risk-adaptive one-to-three isolated translation lanes instead of fixed
+  candidate theater;
+- concept-oriented terminology decisions with authority/domain/corpus evidence,
+  counterevidence, conventionality, independent approval and safe source
+  retention when unresolved;
+- exact source-occurrence and target-application maps for every governed term;
+- deterministic source-only context packages;
+- blind bilingual review, explicit adjudication, conservative Chinese editing,
+  edit-impact verification and whole-document consistency review;
+- additive schema-3 persistence, immutable stage slots and crash-safe resume;
+- atomic activation of a complete verified release into M0 approvals;
+- 64 passing core, adversarial, recovery and synthetic BabelDOC PDF tests.
 
 The provider branch is rebased on BabelDOC `v0.6.4` (`17480db`) and has a
 regression test proving that rich-text styling and formula placeholders survive
@@ -56,13 +69,15 @@ when BabelDOC's built-in LLM translator is not used.
 
 Not yet implemented:
 
-- model calls, terminology, review, adjudication, and PDF postflight;
+- production model/provider calls and automated terminology retrieval;
+- retry budgets, leases and dependency-aware invalidation;
 - a broader corpus of licensed/synthetic layout fixtures and visual QA gates;
 - the one-command production `pubtrans translate` workflow;
 - the thin `translate-publication-pdf` Skill.
 
-This is not yet an end-user translator. M0 establishes the data and write-back
-contract on which the translation and review kernel will be built.
+This is not yet an end-user translator. M1 establishes and tests the semantic
+quality kernel; M2 through M5 make it recoverable under remote failures, prove
+real restored-PDF artifacts, and expose the one-command product.
 
 ## Development
 
@@ -86,6 +101,7 @@ Stock BabelDOC is not substituted silently: the optional dependency points to
 the exact fork commit containing the document-level provider contract.
 
 See [the M0 v2 specification](docs/m0-v2-spec.md),
+[the M1 quality-kernel specification](docs/m1-kernel-spec.md),
 [architecture](docs/architecture.md), and
 [research notes](docs/research-notes.md). The target runtime is Python 3.10
 through 3.13.
