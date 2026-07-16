@@ -1,5 +1,12 @@
 # Publication PDF Translator
 
+> [!WARNING]
+> The published M0 v1 checkpoint is invalidated and must not be used for
+> translation work. Its unit identity included BabelDOC's randomly generated
+> paragraph `debug_id`, so a fresh extraction could not resume the same unit
+> set. A clean-room M0 v2 is replacing that design with a persisted prepared-IL
+> snapshot and deterministic locators.
+
 `publication-pdf-translator` is an experimental, resumable, fail-closed
 translation runtime for producing layout-restored translated PDFs with
 BabelDOC.
