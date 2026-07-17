@@ -14,6 +14,7 @@ from babeldoc.format.pdf.translation_config import WatermarkOutputMode
 
 from m1_helpers import actor
 from m1_helpers import target_draft_from_rendered
+from pubtrans.m0v2.artifacts import PreparedArtifactStore
 from pubtrans.m1.plan import ActorRole
 from pubtrans.m1.plan import ContextPolicy
 from pubtrans.m1.plan import KernelPlan
@@ -54,6 +55,12 @@ from pubtrans.m2.services import ResilientServices
 from pubtrans.m3.workflow import BabelDOCPDFLoop
 from pubtrans.m3.workflow import PlannedTranslation
 from pubtrans.m3.workflow import RenderPhase
+from pubtrans.m4.artifacts import FinalPDFStore
+from pubtrans.m4.errors import ArtifactStoreConflictError
+from pubtrans.m4.model import ArtifactCategory
+from pubtrans.m4.model import ArtifactVerdict
+from pubtrans.m4.store import VerificationStore
+from pubtrans.m4.verifier import PDFArtifactVerifier
 
 
 class SyntheticLayoutModel:
@@ -332,6 +339,16 @@ class RenderFixture:
 def create_source_pdf(path: Path) -> None:
     source = pymupdf.open()
     first = source.new_page(width=420, height=300)
+    logo = pymupdf.Pixmap(
+        pymupdf.csRGB,
+        pymupdf.IRect(0, 0, 20, 20),
+        False,
+    )
+    logo.clear_with(0x3366CC)
+    first.insert_image(
+        pymupdf.Rect(330, 40, 370, 80),
+        stream=logo.tobytes("png"),
+    )
     first.insert_text((50, 65), "Hello publication world.", fontsize=14)
     first.insert_text((50, 115), "Short: Hi", fontsize=12)
     first.insert_text(
@@ -414,3 +431,132 @@ def test_real_pdf_runs_prepare_quality_bus_and_babeldoc_restore(tmp_path: Path) 
     normalized_output = " ".join(output_text.replace("\N{NO-BREAK SPACE}", " ").split())
     assert "E = mc2" in normalized_output
     assert "world" in normalized_output
+
+    prepared_store = PreparedArtifactStore(
+        (tmp_path / "project.sqlite3").with_suffix(".sqlite3.artifacts")
+    )
+    final_store = FinalPDFStore(tmp_path / "verified-final-pdfs")
+    with VerificationStore(
+        tmp_path / "project.sqlite3",
+        prepared_store,
+        final_store,
+    ) as store:
+        document = store.load_document()
+        report = PDFArtifactVerifier().verify(
+            document=document,
+            release=result.release,
+            source_pdf=source_path,
+            target_pdf=result.rendered.mono_pdf_path,
+        )
+        assert report.verdict is ArtifactVerdict.PASS
+        assert report.findings == ()
+        assert report.metrics["unit_literals_total"] >= 4
+        assert report.metrics["source_anchors_found"] == 1
+        reference = store.record_report(
+            document=document,
+            release=result.release,
+            report=report,
+            target_pdf_path=result.rendered.mono_pdf_path,
+        )
+        assert store.load_report(report.report_id) == report
+        assert store.load_active_artifact() == (report, reference)
+        assert store.connection.execute("PRAGMA user_version").fetchone()[0] == 5
+
+        missing_page_path = tmp_path / "missing-page.pdf"
+        changed = pymupdf.open(result.rendered.mono_pdf_path)
+        changed.delete_page(changed.page_count - 1)
+        changed.save(missing_page_path)
+        changed.close()
+        missing_page = PDFArtifactVerifier().verify(
+            document=document,
+            release=result.release,
+            source_pdf=source_path,
+            target_pdf=missing_page_path,
+        )
+        assert missing_page.verdict is ArtifactVerdict.BLOCK
+        assert ArtifactCategory.PAGE_COUNT in {
+            item.category for item in missing_page.findings
+        }
+
+        missing_text_path = tmp_path / "missing-approved-text.pdf"
+        changed = pymupdf.open(result.rendered.mono_pdf_path)
+        text_rects = changed[0].search_for("出版")
+        assert text_rects
+        for rectangle in text_rects:
+            changed[0].add_redact_annot(rectangle)
+        changed[0].apply_redactions()
+        changed.save(missing_text_path)
+        changed.close()
+        missing_text = PDFArtifactVerifier().verify(
+            document=document,
+            release=result.release,
+            source_pdf=source_path,
+            target_pdf=missing_text_path,
+        )
+        assert ArtifactCategory.TEXT_COVERAGE in {
+            item.category for item in missing_text.findings
+        }
+
+        missing_anchor_path = tmp_path / "missing-formula.pdf"
+        changed = pymupdf.open(result.rendered.mono_pdf_path)
+        formula_rects = changed[0].search_for("E = mc2")
+        assert formula_rects
+        for rectangle in formula_rects:
+            changed[0].add_redact_annot(rectangle)
+        changed[0].apply_redactions()
+        changed.save(missing_anchor_path)
+        changed.close()
+        missing_anchor = PDFArtifactVerifier().verify(
+            document=document,
+            release=result.release,
+            source_pdf=source_path,
+            target_pdf=missing_anchor_path,
+        )
+        assert ArtifactCategory.PROTECTED_ANCHOR in {
+            item.category for item in missing_anchor.findings
+        }
+
+        missing_image_path = tmp_path / "missing-image.pdf"
+        changed = pymupdf.open(result.rendered.mono_pdf_path)
+        images = changed[0].get_images(full=True)
+        assert images
+        changed[0].delete_image(images[0][0])
+        changed.save(missing_image_path)
+        changed.close()
+        missing_image = PDFArtifactVerifier().verify(
+            document=document,
+            release=result.release,
+            source_pdf=source_path,
+            target_pdf=missing_image_path,
+        )
+        assert ArtifactCategory.IMAGE_COVERAGE in {
+            item.category for item in missing_image.findings
+        }
+
+        corrupt_path = tmp_path / "corrupt.pdf"
+        corrupt_path.write_bytes(b"not a PDF")
+        corrupt = PDFArtifactVerifier().verify(
+            document=document,
+            release=result.release,
+            source_pdf=source_path,
+            target_pdf=corrupt_path,
+        )
+        assert corrupt.verdict is ArtifactVerdict.BLOCK
+        assert ArtifactCategory.FILE_INTEGRITY in {
+            item.category for item in corrupt.findings
+        }
+        with pytest.raises(
+            ArtifactStoreConflictError,
+            match="blocked artifact",
+        ):
+            store.record_report(
+                document=document,
+                release=result.release,
+                report=corrupt,
+                target_pdf_path=corrupt_path,
+            )
+        assert store.load_report(corrupt.report_id) is None
+
+        final_store.path_for(reference).write_bytes(b"corrupt")
+        with pytest.raises(ArtifactStoreConflictError, match="size differs"):
+            store.load_active_artifact()

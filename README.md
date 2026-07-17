@@ -21,10 +21,11 @@ experience is one command for a complete book. A future `pubtrans translate`
 command will create or resume a project and continue until a verified PDF or a
 real blocking condition is reached.
 
-## M3 checkpoint status
+## M4 checkpoint status
 
-The M0 v2 preparation/write-back contract, M1 semantic quality kernel, and M2
-remote-call recovery controller remain intact. M3 now also implements:
+The M0 v2 preparation/write-back contract, M1 semantic quality kernel, M2
+remote-call recovery controller, and M3 real BabelDOC loop remain intact. M4
+now also implements:
 
 - stable project, prepared-snapshot, paragraph, and translation-unit identities
   that exclude BabelDOC diagnostic IDs;
@@ -75,7 +76,16 @@ remote-call recovery controller remain intact. M3 now also implements:
   second render;
 - a real two-page CJK/font/formula/terminology fixture through the actual
   BabelDOC high-level pipeline;
-- 73 passing core, adversarial, recovery and real-PDF BabelDOC tests.
+- source-bound reopening and rasterization of the actual final PDF;
+- exact page-count, page-geometry, blank-page and visible-ink gates;
+- per-page approved-translation and protected number/URL/formula coverage;
+- decoded-image digest preservation, font/`.notdef`/U+FFFD checks, text-boundary
+  and material-overlap checks;
+- immutable schema-5 reports and atomic activation of only a passing final PDF;
+- a dedicated content-addressed `.pdf` store that re-verifies active artifacts;
+- adversarial proof for missing pages, text, formulas and images, corrupt PDFs,
+  and post-activation file mutation;
+- 76 passing core, adversarial, recovery and real-PDF BabelDOC tests.
 
 The provider branch is rebased on BabelDOC `v0.6.4` (`17480db`) and has a
 regression test proving that rich-text styling and formula placeholders survive
@@ -84,13 +94,13 @@ when BabelDOC's built-in LLM translator is not used.
 Not yet implemented:
 
 - production model/provider calls and automated terminology retrieval;
-- a broader corpus of licensed/synthetic layout fixtures and visual QA gates;
+- a broader corpus of licensed/synthetic layout fixtures;
 - the one-command production `pubtrans translate` workflow;
 - the thin `translate-publication-pdf` Skill.
 
-This is not yet an end-user translator. M3 establishes the real restored-PDF
-loop; M4 and M5 add artifact gates, production providers, full-book trials and
-the one-command product.
+This is not yet an end-user translator. M4 establishes a verified final-PDF
+release boundary; M5 adds production providers, automated terminology
+research, two-domain trials, the thin Skill and the one-command product.
 
 ## Development
 
@@ -117,6 +127,7 @@ See [the M0 v2 specification](docs/m0-v2-spec.md),
 [the M1 quality-kernel specification](docs/m1-kernel-spec.md),
 [the M2 recovery-controller specification](docs/m2-recovery-spec.md),
 [the M3 PDF-loop specification](docs/m3-pdf-loop-spec.md),
+[the M4 artifact-gate specification](docs/m4-artifact-gates-spec.md),
 [architecture](docs/architecture.md), and
 [research notes](docs/research-notes.md). The target runtime is Python 3.10
 through 3.13.

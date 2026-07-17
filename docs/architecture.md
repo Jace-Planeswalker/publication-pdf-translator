@@ -1,6 +1,6 @@
 # Architecture
 
-Status: M3 two-pass BabelDOC PDF loop implemented on M1/M2
+Status: M4 verified final-PDF release implemented on the M1–M3 runtime
 
 Baseline: BabelDOC 0.6.4 (`17480db9df92ddcb37349ce34b312335226e8ec9`)
 
@@ -72,7 +72,7 @@ removed if accepted.
 | M1: kernel | Risk-adaptive isolated candidates, evidence-backed terminology, source context, sequential review, adjudication, Chinese editing, unit and document verification, and atomic release |
 | M2: recovery | Content-addressed service cache, fenced leases, classified retries, immutable budgets, precise generation invalidation and crash recovery |
 | M3: PDF loop | Real two-page CJK fixture from BabelDOC extraction through M1/M2 release, persisted-IL write-back, rendering, and zero-call resume |
-| M4: verification | Text coverage, images, fonts, clipping, overlap and visual regression gates |
+| M4: verification | Actual final-PDF reopening/rasterization, approved-text and protected-anchor coverage, images, fonts, clipping, overlap, immutable reports and passing-artifact activation |
 | M5: product | One-command CLI, packaging, thin Skill and two distinct full-book trials |
 
 Publishing intermediate milestones does not make them production releases.

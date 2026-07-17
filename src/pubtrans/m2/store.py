@@ -110,7 +110,7 @@ class RecoveryStore(KernelStore):
             except BaseException:
                 self.connection.rollback()
                 raise
-        elif current == M2_SCHEMA_VERSION:
+        elif current >= M2_SCHEMA_VERSION:
             self.connection.executescript(M2_SCHEMA)
         else:
             raise RecoveryConflictError(
