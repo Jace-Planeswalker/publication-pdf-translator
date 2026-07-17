@@ -21,10 +21,10 @@ experience is one command for a complete book. A future `pubtrans translate`
 command will create or resume a project and continue until a verified PDF or a
 real blocking condition is reached.
 
-## M2 checkpoint status
+## M3 checkpoint status
 
-The M0 v2 preparation/write-back contract and M1 semantic quality kernel remain
-intact. M2 now also implements:
+The M0 v2 preparation/write-back contract, M1 semantic quality kernel, and M2
+remote-call recovery controller remain intact. M3 now also implements:
 
 - stable project, prepared-snapshot, paragraph, and translation-unit identities
   that exclude BabelDOC diagnostic IDs;
@@ -68,7 +68,14 @@ intact. M2 now also implements:
 - immutable call/token/cost budgets reserved before invocation;
 - dependency-aware reuse of unchanged translations after downstream replans;
 - sanitized failure ledgers and schema-4 additive migration;
-- 72 passing core, adversarial, recovery and synthetic BabelDOC PDF tests.
+- a two-pass application loop from BabelDOC prepared-IL capture through the
+  M1/M2 release and restored-PDF rendering;
+- exact post-render release/approval reconciliation;
+- completed-project reuse without duplicate service calls or a redundant
+  second render;
+- a real two-page CJK/font/formula/terminology fixture through the actual
+  BabelDOC high-level pipeline;
+- 73 passing core, adversarial, recovery and real-PDF BabelDOC tests.
 
 The provider branch is rebased on BabelDOC `v0.6.4` (`17480db`) and has a
 regression test proving that rich-text styling and formula placeholders survive
@@ -81,9 +88,9 @@ Not yet implemented:
 - the one-command production `pubtrans translate` workflow;
 - the thin `translate-publication-pdf` Skill.
 
-This is not yet an end-user translator. M2 establishes remote-call recovery;
-M3 through M5 prove real restored-PDF artifacts and expose the one-command
-product.
+This is not yet an end-user translator. M3 establishes the real restored-PDF
+loop; M4 and M5 add artifact gates, production providers, full-book trials and
+the one-command product.
 
 ## Development
 
@@ -109,6 +116,7 @@ the exact fork commit containing the document-level provider contract.
 See [the M0 v2 specification](docs/m0-v2-spec.md),
 [the M1 quality-kernel specification](docs/m1-kernel-spec.md),
 [the M2 recovery-controller specification](docs/m2-recovery-spec.md),
+[the M3 PDF-loop specification](docs/m3-pdf-loop-spec.md),
 [architecture](docs/architecture.md), and
 [research notes](docs/research-notes.md). The target runtime is Python 3.10
 through 3.13.
