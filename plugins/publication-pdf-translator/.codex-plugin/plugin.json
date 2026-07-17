@@ -1,0 +1,18 @@
+{
+  "name": "publication-pdf-translator",
+  "version": "0.2.0",
+  "description": "Run and resume evidence-governed, restored-layout publication PDF translation.",
+  "author": {
+    "name": "Publication PDF Translator contributors"
+  },
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Publication PDF Translator",
+    "shortDescription": "Build verified, restored-layout translated PDFs.",
+    "longDescription": "Launch, resume and inspect the publication-pdf-translator runtime without moving translation or layout state into chat.",
+    "developerName": "Publication PDF Translator contributors",
+    "category": "Productivity",
+    "capabilities": [],
+    "defaultPrompt": "Translate this complete publication PDF and return only a verified restored-layout PDF plus its report."
+  }
+}

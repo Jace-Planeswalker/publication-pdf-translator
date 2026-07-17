@@ -57,6 +57,29 @@ corroborated real usage outranks dictionary plausibility; search snippets and
 LLM memory are discovery aids only. A rarer form can still win when it is more
 accurate, but the exception must be explicit and auditable.
 
+Corroboration is counted by publishing authority, not link count. Multiple
+HTTP pages on one host share an independence key; Termonline, CNTERM and
+`gov.cn` subdomains are grouped even more conservatively. This closes the
+common failure mode where two pages copied from one source falsely look like
+two independent attestations.
+
+## Production provider choices
+
+The runtime follows the official OpenAI guidance to use the Responses API for
+new work, sends `store: false`, and requests strict structured output through
+`text.format`. Hosted web search is used only for discovery; the runtime reads
+provider URL citations and then captures the actual public page before it can
+become terminology evidence.
+
+- [Responses migration guide](https://developers.openai.com/api/docs/guides/migrate-to-responses)
+- [Structured Outputs guide](https://developers.openai.com/api/docs/guides/structured-outputs)
+- [Web search tool guide](https://developers.openai.com/api/docs/guides/tools-web-search)
+
+Whole-book review is hierarchical rather than one unbounded prompt. Bounded
+local reviews record findings and continuity observations; a separate
+cross-chunk synthesis compares names, terminology, references, voice and
+register. Paid calls at both levels have independent recovery slots.
+
 ## Fork policy
 
 Only BabelDOC is forked because the runtime needs a narrow IL write-back seam

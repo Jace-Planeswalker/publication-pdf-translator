@@ -1,0 +1,18 @@
+{
+  "source_language": "en",
+  "target_language": "zh-Hans",
+  "profile_name": "publication",
+  "provider": "openai-responses",
+  "base_url": "https://api.openai.com/v1",
+  "api_key_env": "OPENAI_API_KEY",
+  "default_model": "replace-with-a-supported-model",
+  "role_models": {},
+  "reasoning_effort": "high",
+  "request_timeout_seconds": 300,
+  "enable_web_research": true,
+  "max_planning_calls": 500,
+  "max_translation_calls": 100000,
+  "global_review_chunk_characters": 40000,
+  "max_estimated_tokens": 1000000000,
+  "max_estimated_microusd": 1000000000
+}
