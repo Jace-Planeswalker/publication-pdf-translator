@@ -1,6 +1,6 @@
 # Architecture
 
-Status: M5 research product implemented and verified end to end
+Status: M6 engineered research product implemented and verified end to end
 
 Baseline: BabelDOC 0.6.4 (`17480db9df92ddcb37349ce34b312335226e8ec9`)
 
@@ -11,9 +11,11 @@ Simplified Chinese PDF. BabelDOC is the only PDF parsing, intermediate-layout,
 typesetting, and PDF-generation engine. The project does not generate LaTeX or
 DOCX and does not maintain a parallel layout model.
 
-The core is a standalone Python application. The Codex Skill and repository
-plugin are thin launchers and monitors; they do not split, translate, merge, or
-persist books in the chat context.
+The core is a standalone Python application. The Codex plugin is a control
+plane with a dependency-free adapter, local MCP server and orchestration Skill.
+It installs a pinned application release, binds operator inputs, starts and
+monitors durable jobs, and collects only verified output. It does not split,
+translate, merge, or persist books in the chat context.
 
 ## Staged internally, one command externally
 
@@ -22,16 +24,21 @@ translation, independent review, adjudication, typesetting, and final-PDF QA
 have different invariants and failure modes. Each stage commits durable state
 and passes an explicit quality gate.
 
-The stages are not intended as manual user operations. The public entry point
-is:
+The stages are not intended as manual user operations. The controlled public
+entry points are:
 
 ```bash
-pubtrans translate source.pdf --project projects/source-zh --config config.json
+pubtrans init /absolute/source.pdf --project /absolute/project --config config.json
+pubtrans doctor /absolute/project
+pubtrans run /absolute/project
+pubtrans status /absolute/project
+pubtrans collect /absolute/project --destination /absolute/delivery
 ```
 
-That command will create or resume a project and continue until `RELEASED`, or
-stop with a structured, truthful blocker. Approved work is never repeated
-merely because the process was interrupted.
+The MCP adapter exposes the same state machine as bootstrap, init, doctor,
+start, poll, status and collect tools. `run` resumes until `RELEASED` or a
+structured truthful blocker. Approved work is never repeated merely because
+the process or chat was interrupted.
 
 ## Stable boundaries
 
@@ -74,10 +81,31 @@ removed if accepted.
 | M3: PDF loop | Real two-page CJK fixture from BabelDOC extraction through M1/M2 release, persisted-IL write-back, rendering, and zero-call resume |
 | M4: verification | Actual final-PDF reopening/rasterization, approved-text and protected-anchor coverage, images, fonts, clipping, overlap, immutable reports and passing-artifact activation |
 | M5: product | One-command CLI, production Responses provider, evidence-governed terminology, bounded whole-book review, thin Skill/plugin and two distinct actual-PDF trials |
+| M6: operator | Content-bound project initialization, read-only preflight/status, pinned runtime bootstrap, durable background jobs, local MCP tools, canonical orchestration Skill and verified delivery collection |
 
 Publishing intermediate milestones does not make this a commercial production
-release. M5 is a complete research product and the old monolithic translation
-Skill is replaced by the thin project launcher.
+release. M6 is a complete research product: the old monolithic prompt workflow
+is replaced by an executable control plane whose Skill only orchestrates
+application-owned state and gates.
+
+## M6 control plane
+
+`control/project.json` immutably binds the source PDF, secret-free product
+configuration, optional terminology evidence, runtime compatibility and layout
+options. `status` and `doctor` are read-only and never create a database simply
+because an operator inspected a path. Mutation of a bound input fails closed.
+
+The plugin bootstrap installs the immutable `release/v0.3.0` ref into a
+versioned virtual environment outside Git. The stdio MCP server has no third-party
+dependencies; all translation dependencies live in that isolated runtime.
+Background jobs write small control records and stdout/stderr paths beneath
+`control/jobs/`, so another MCP process can poll or resume without a chat-owned
+process handle.
+
+Collection is a separate gate. It accepts only `RELEASED`, revalidates the
+published PDF against the active content-addressed artifact, refuses to
+overwrite different bytes, and emits a delivery manifest covering the PDF and
+verification report.
 
 ## M5 runtime topology
 
