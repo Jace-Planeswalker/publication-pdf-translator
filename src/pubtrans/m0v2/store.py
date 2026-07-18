@@ -8,6 +8,10 @@ from collections.abc import Iterable
 from contextlib import contextmanager
 from pathlib import Path
 
+from pubtrans.schema import LATEST_SCHEMA_VERSION
+from pubtrans.schema import M0_SCHEMA_VERSION
+from pubtrans.schema import SUPPORTED_SCHEMA_VERSIONS
+
 from .artifacts import ArtifactRef
 from .artifacts import PreparedArtifactStore
 from .canonical import canonical_json
@@ -23,7 +27,7 @@ from .model import ProjectBinding
 from .provider import validate_approval_set
 
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = M0_SCHEMA_VERSION
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS m0v2_project (
@@ -120,9 +124,10 @@ class ProjectStore:
 
     def _initialize_schema(self) -> None:
         current = int(self.connection.execute("PRAGMA user_version").fetchone()[0])
-        if current > SCHEMA_VERSION:
+        if current > LATEST_SCHEMA_VERSION:
             raise UnsupportedSchemaError(
-                f"database schema {current} is newer than supported {SCHEMA_VERSION}"
+                "database schema "
+                f"{current} is newer than supported {LATEST_SCHEMA_VERSION}"
             )
 
         user_tables = {
@@ -136,14 +141,16 @@ class ProjectStore:
             raise LegacyDatabaseError(
                 "unversioned or M0 v1 database requires explicit migration"
             )
-        if current not in (0, SCHEMA_VERSION):
+        if current != 0 and current not in SUPPORTED_SCHEMA_VERSIONS:
             raise LegacyDatabaseError(
                 f"database schema {current} has no automatic M0 v2 migration"
             )
         if current == 0:
             with self.connection:
                 self.connection.executescript(SCHEMA)
-                self.connection.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
+                self.connection.execute(
+                    f"PRAGMA user_version = {M0_SCHEMA_VERSION}"
+                )
         else:
             self.connection.executescript(SCHEMA)
 
@@ -387,6 +394,20 @@ class ProjectStore:
         *,
         activate: bool = True,
     ) -> None:
+        approvals = self._validate_approvals(document, approvals)
+
+        with self._transaction():
+            self._record_approvals_in_transaction(
+                document,
+                approvals,
+                activate=activate,
+            )
+
+    def _validate_approvals(
+        self,
+        document: PreparedDocument,
+        approvals: Iterable[ApprovalRevision],
+    ) -> tuple[ApprovalRevision, ...]:
         document.require_unblocked()
         approvals = tuple(approvals)
         approval_ids = [approval.approval_id for approval in approvals]
@@ -411,68 +432,76 @@ class ProjectStore:
                 approval.target_text,
                 require_nonempty_styles=True,
             )
+        return approvals
 
-        with self._transaction():
-            self._assert_registered(document)
-            for approval in approvals:
-                payload_json = canonical_json(approval.as_payload())
-                existing = self.connection.execute(
-                    "SELECT payload_json FROM m0v2_approval_revision "
-                    "WHERE approval_id = ?",
-                    (approval.approval_id,),
+    def _record_approvals_in_transaction(
+        self,
+        document: PreparedDocument,
+        approvals: tuple[ApprovalRevision, ...],
+        *,
+        activate: bool,
+    ) -> None:
+        """Record already-validated approvals inside the caller's transaction."""
+        self._assert_registered(document)
+        for approval in approvals:
+            payload_json = canonical_json(approval.as_payload())
+            existing = self.connection.execute(
+                "SELECT payload_json FROM m0v2_approval_revision "
+                "WHERE approval_id = ?",
+                (approval.approval_id,),
+            ).fetchone()
+            if existing is None:
+                self.connection.execute(
+                    """
+                    INSERT INTO m0v2_approval_revision(
+                        approval_id, unit_key, unit_revision,
+                        target_sha256, payload_json
+                    ) VALUES (?, ?, ?, ?, ?)
+                    """,
+                    (
+                        approval.approval_id,
+                        approval.unit_key,
+                        approval.unit_revision,
+                        approval.target_sha256,
+                        payload_json,
+                    ),
+                )
+                self._event(
+                    "approval_recorded",
+                    approval.approval_id,
+                    {"unit_key": approval.unit_key},
+                )
+            elif existing["payload_json"] != payload_json:
+                raise StateConflictError(
+                    f"immutable approval changed: {approval.approval_id}"
+                )
+
+            if activate:
+                active = self.connection.execute(
+                    "SELECT approval_id FROM m0v2_active_approval "
+                    "WHERE unit_key = ?",
+                    (approval.unit_key,),
                 ).fetchone()
-                if existing is None:
+                previous = active["approval_id"] if active is not None else None
+                if previous != approval.approval_id:
                     self.connection.execute(
                         """
-                        INSERT INTO m0v2_approval_revision(
-                            approval_id, unit_key, unit_revision,
-                            target_sha256, payload_json
-                        ) VALUES (?, ?, ?, ?, ?)
+                        INSERT INTO m0v2_active_approval(unit_key, approval_id)
+                        VALUES (?, ?)
+                        ON CONFLICT(unit_key) DO UPDATE SET
+                            approval_id = excluded.approval_id,
+                            activated_at = CURRENT_TIMESTAMP
                         """,
-                        (
-                            approval.approval_id,
-                            approval.unit_key,
-                            approval.unit_revision,
-                            approval.target_sha256,
-                            payload_json,
-                        ),
+                        (approval.unit_key, approval.approval_id),
                     )
                     self._event(
-                        "approval_recorded",
-                        approval.approval_id,
-                        {"unit_key": approval.unit_key},
+                        "approval_activated",
+                        approval.unit_key,
+                        {
+                            "approval_id": approval.approval_id,
+                            "supersedes": previous,
+                        },
                     )
-                elif existing["payload_json"] != payload_json:
-                    raise StateConflictError(
-                        f"immutable approval changed: {approval.approval_id}"
-                    )
-
-                if activate:
-                    active = self.connection.execute(
-                        "SELECT approval_id FROM m0v2_active_approval "
-                        "WHERE unit_key = ?",
-                        (approval.unit_key,),
-                    ).fetchone()
-                    previous = active["approval_id"] if active is not None else None
-                    if previous != approval.approval_id:
-                        self.connection.execute(
-                            """
-                            INSERT INTO m0v2_active_approval(unit_key, approval_id)
-                            VALUES (?, ?)
-                            ON CONFLICT(unit_key) DO UPDATE SET
-                                approval_id = excluded.approval_id,
-                                activated_at = CURRENT_TIMESTAMP
-                            """,
-                            (approval.unit_key, approval.approval_id),
-                        )
-                        self._event(
-                            "approval_activated",
-                            approval.unit_key,
-                            {
-                                "approval_id": approval.approval_id,
-                                "supersedes": previous,
-                            },
-                        )
 
     def resolve(self, document: PreparedDocument) -> tuple[ApprovalRevision, ...]:
         self._assert_registered(document)
