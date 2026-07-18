@@ -1,4 +1,4 @@
-name: m0-v2-core
+name: core-contracts
 
 on:
   push:
@@ -19,16 +19,16 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -e '.[dev]'
-      - run: >-
-          ruff check
-          src/pubtrans/m0v2
-          src/pubtrans/cli.py
-          tests/m0v2_helpers.py
-          tests/test_cli.py
-          tests/test_m0v2_contract.py
-          tests/test_m0v2_store.py
+      - run: ruff check src tests
       - run: >-
           python -m pytest -q
           tests/test_cli.py
           tests/test_m0v2_contract.py
           tests/test_m0v2_store.py
+          tests/test_m1_plan_workflow.py
+          tests/test_m1_store_kernel.py
+          tests/test_m1_terminology.py
+          tests/test_m2_recovery.py
+          tests/test_m5_openai_and_marking.py
+          tests/test_m5_planner.py
+          tests/test_m5_services.py

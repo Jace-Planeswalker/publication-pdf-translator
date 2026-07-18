@@ -233,12 +233,27 @@ class AdjudicationRequest:
     options: tuple[AnonymousOption, ...]
     review_payload: dict[str, object]
 
+    def as_payload(self) -> dict[str, object]:
+        return {
+            "actor": self.actor.as_payload(),
+            "stage": self.stage.as_payload(),
+            "options": [item.as_payload() for item in self.options],
+            "review": self.review_payload,
+        }
+
 
 @dataclass(frozen=True, slots=True)
 class EditRequest:
     actor: ActorSpec
     stage: UnitStageInput
     adjudication_payload: dict[str, object]
+
+    def as_payload(self) -> dict[str, object]:
+        return {
+            "actor": self.actor.as_payload(),
+            "stage": self.stage.as_payload(),
+            "adjudication": self.adjudication_payload,
+        }
 
 
 @dataclass(frozen=True, slots=True)
@@ -247,6 +262,14 @@ class VerificationRequest:
     stage: UnitStageInput
     adjudication_payload: dict[str, object]
     edit_payload: dict[str, object]
+
+    def as_payload(self) -> dict[str, object]:
+        return {
+            "actor": self.actor.as_payload(),
+            "stage": self.stage.as_payload(),
+            "adjudication": self.adjudication_payload,
+            "edit": self.edit_payload,
+        }
 
 
 @dataclass(frozen=True, slots=True)
@@ -257,6 +280,16 @@ class GlobalReviewRequest:
     target_language: str
     source_brief: str | None
     unit_payloads: tuple[dict[str, object], ...]
+
+    def as_payload(self) -> dict[str, object]:
+        return {
+            "actor": self.actor.as_payload(),
+            "plan_key": self.plan_key,
+            "source_language": self.source_language,
+            "target_language": self.target_language,
+            "source_brief": self.source_brief,
+            "unit_payloads": list(self.unit_payloads),
+        }
 
 
 class TranslationService(Protocol):

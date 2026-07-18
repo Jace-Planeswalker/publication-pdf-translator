@@ -10,6 +10,7 @@ from pathlib import Path
 
 from pubtrans.schema import LATEST_SCHEMA_VERSION
 from pubtrans.schema import M0_SCHEMA_VERSION
+from pubtrans.schema import SUPPORTED_SCHEMA_VERSIONS
 
 from .artifacts import ArtifactRef
 from .artifacts import PreparedArtifactStore
@@ -140,7 +141,7 @@ class ProjectStore:
             raise LegacyDatabaseError(
                 "unversioned or M0 v1 database requires explicit migration"
             )
-        if current not in (0, M0_SCHEMA_VERSION, LATEST_SCHEMA_VERSION):
+        if current != 0 and current not in SUPPORTED_SCHEMA_VERSIONS:
             raise LegacyDatabaseError(
                 f"database schema {current} has no automatic M0 v2 migration"
             )
