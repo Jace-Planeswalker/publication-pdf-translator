@@ -5,104 +5,194 @@ import unittest
 from pathlib import Path
 
 from babeldoc.format.pdf.document_il.midend.document_translation_provider import (
+    ENGINE_COMMIT,
+)
+from babeldoc.format.pdf.document_il.midend.document_translation_provider import (
+    BoxFingerprint,
+)
+from babeldoc.format.pdf.document_il.midend.document_translation_provider import (
+    DocumentTranslationBlockedError,
+)
+from babeldoc.format.pdf.document_il.midend.document_translation_provider import (
     DocumentTranslationContext,
+)
+from babeldoc.format.pdf.document_il.midend.document_translation_provider import (
+    ParagraphRecord,
+)
+from babeldoc.format.pdf.document_il.midend.document_translation_provider import (
+    PlaceholderContract,
+)
+from babeldoc.format.pdf.document_il.midend.document_translation_provider import (
+    PreparedILArtifact,
+)
+from babeldoc.format.pdf.document_il.midend.document_translation_provider import (
+    PreparedSnapshot,
+)
+from babeldoc.format.pdf.document_il.midend.document_translation_provider import (
+    PreparedTranslationDocument,
 )
 from babeldoc.format.pdf.document_il.midend.document_translation_provider import (
     PreparedTranslationUnit,
 )
 from babeldoc.format.pdf.document_il.midend.document_translation_provider import (
-    make_unit_id,
-)
-from babeldoc.format.pdf.document_il.midend.document_translation_provider import (
-    placeholder_signature,
-)
-from babeldoc.format.pdf.document_il.midend.document_translation_provider import (
-    sha256_text,
+    UnitLocator,
 )
 
 from pubtrans.babeldoc_adapter import SQLiteDocumentTranslationProvider
-from pubtrans.errors import UnitSetMismatchError
-from pubtrans.models import ApprovedTranslation
-from pubtrans.state import ProjectState
+from pubtrans.m0v2.errors import ApprovalSetError
+from pubtrans.m0v2.errors import SnapshotConflictError
+from pubtrans.m0v2.model import ApprovalRevision
 
 
-DOCUMENT_HASH = "a" * 64
-
-
-def make_external_unit() -> PreparedTranslationUnit:
-    token = "<b0>"
-    closing_token = "</b0>"
-    source_text = f"Hello {token}world{closing_token}"
-    source_hash = sha256_text(source_text)
-    tokens = (token, closing_token)
-    pairs = ((token, closing_token),)
-    return PreparedTranslationUnit(
-        unit_id=make_unit_id(
-            document_sha256=DOCUMENT_HASH,
-            page_number=1,
-            paragraph_debug_id="paragraph-1",
-            reading_order=0,
-            source_sha256=source_hash,
-        ),
-        page_number=1,
-        paragraph_debug_id="paragraph-1",
-        reading_order=0,
-        source_text=source_text,
-        source_sha256=source_hash,
-        required_placeholders=tokens,
-        paired_placeholders=pairs,
-        placeholder_signature=placeholder_signature(tokens, pairs),
-        layout_label="text",
+def make_external_document(
+    *,
+    blocker: bool = False,
+) -> tuple[
+    DocumentTranslationContext,
+    PreparedILArtifact,
+    PreparedTranslationDocument,
+]:
+    context = DocumentTranslationContext.create(
+        original_pdf_sha256="a" * 64,
+        prepared_pdf_sha256="b" * 64,
+        source_language="en",
+        target_language="zh-Hans",
+        profile_name="publication",
+        engine_name="BabelDOC",
+        engine_version="0.6.4",
+        engine_commit=ENGINE_COMMIT,
+        extraction_profile={"layout_model_sha256": "c" * 64},
+        part_key="whole-document",
     )
-
-
-class BabelDOCAdapterTests(unittest.TestCase):
-    def setUp(self) -> None:
-        self.unit = make_external_unit()
-        self.context = DocumentTranslationContext(
-            document_sha256=DOCUMENT_HASH,
-            lang_in="en",
-            lang_out="zh-CN",
+    artifact = PreparedILArtifact.create(context, "<document/>\n")
+    snapshot = PreparedSnapshot.create(context, artifact)
+    locator = UnitLocator(0, 0)
+    box = BoxFingerprint.create(1, 2, 100, 20)
+    placeholders = PlaceholderContract.create(
+        f"PT2-{snapshot.snapshot_key[:12]}",
+        (),
+    )
+    unit = PreparedTranslationUnit.create(
+        snapshot=snapshot,
+        locator=locator,
+        source_text="Hello",
+        placeholders=placeholders,
+        layout_label="text",
+        vertical=False,
+        box=box,
+    )
+    records = [
+        ParagraphRecord(
+            snapshot_key=snapshot.snapshot_key,
+            locator=locator,
+            disposition="translatable",
+            reason="TEXT",
+            source_text="Hello",
+            layout_label="text",
+            vertical=False,
+            box=box,
+            unit=unit,
         )
+    ]
+    if blocker:
+        records.append(
+            ParagraphRecord(
+                snapshot_key=snapshot.snapshot_key,
+                locator=UnitLocator(0, 1),
+                disposition="blocker",
+                reason="VERTICAL_TEXT_UNSUPPORTED",
+                source_text="Vertical text",
+                layout_label="text",
+                vertical=True,
+                box=BoxFingerprint.create(110, 2, 130, 100),
+                unit=None,
+            )
+        )
+    document = PreparedTranslationDocument.create(
+        snapshot=snapshot,
+        page_paragraph_counts=(len(records),),
+        records=records,
+    )
+    return context, artifact, document
 
-    def test_first_call_captures_units_and_fails_without_approval(self) -> None:
+
+class BabelDOCAdapterV2Tests(unittest.TestCase):
+    def test_artifact_capture_survives_provider_restart(self) -> None:
+        context, artifact, _document = make_external_document()
+        with tempfile.TemporaryDirectory() as directory:
+            database = Path(directory) / "project.sqlite3"
+            first = SQLiteDocumentTranslationProvider(database)
+            first.save_prepared_artifact(context, artifact)
+
+            second = SQLiteDocumentTranslationProvider(database)
+            self.assertEqual(second.load_prepared_artifact(context), artifact)
+            with second._store() as store:
+                self.assertEqual(store.status()["prepared_contexts"], 1)
+
+    def test_first_manifest_capture_fails_closed_until_approved(self) -> None:
+        context, artifact, document = make_external_document()
         with tempfile.TemporaryDirectory() as directory:
             database = Path(directory) / "project.sqlite3"
             provider = SQLiteDocumentTranslationProvider(database)
+            provider.save_prepared_artifact(context, artifact)
 
-            with self.assertRaises(UnitSetMismatchError):
-                provider.translate_document((self.unit,), self.context)
+            with self.assertRaises(ApprovalSetError):
+                provider.translate_document(document)
 
-            with ProjectState(database) as state:
-                self.assertEqual(
-                    state.status(), {"units": 1, "approved": 0, "pending": 1}
-                )
-                self.assertEqual(state.load_units()[0].unit_id, self.unit.unit_id)
+            with provider._store() as store:
+                self.assertEqual(store.status()["records"], 1)
+                self.assertEqual(store.status()["units"], 1)
+                self.assertEqual(store.status()["pending"], 1)
 
-    def test_approved_map_round_trip_uses_babeldoc_types(self) -> None:
+    def test_approved_revision_returns_exact_babeldoc_envelope(self) -> None:
+        context, artifact, document = make_external_document()
         with tempfile.TemporaryDirectory() as directory:
-            database = Path(directory) / "project.sqlite3"
-            provider = SQLiteDocumentTranslationProvider(database)
-            with self.assertRaises(UnitSetMismatchError):
-                provider.translate_document((self.unit,), self.context)
+            provider = SQLiteDocumentTranslationProvider(
+                Path(directory) / "project.sqlite3"
+            )
+            provider.save_prepared_artifact(context, artifact)
+            with self.assertRaises(ApprovalSetError):
+                provider.translate_document(document)
 
-            with ProjectState(database) as state:
-                core_unit = state.load_units()[0]
-                state.record_approvals(
-                    [core_unit],
-                    [
-                        ApprovedTranslation(
-                            unit_id=core_unit.unit_id,
-                            source_sha256=core_unit.source_sha256,
-                            placeholder_signature=core_unit.placeholder_signature,
-                            target_text="你好 <b0>世界</b0>",
-                        )
-                    ],
+            with provider._store() as store:
+                core_document = store.load_document()
+                approval = ApprovalRevision.create(
+                    unit=core_document.units[0],
+                    target_text="你好",
+                    origin="test-adjudicator",
                 )
+                store.record_approvals(core_document, (approval,))
 
-            results = provider.translate_document((self.unit,), self.context)
-            self.assertEqual(results[0].target_text, "你好 <b0>世界</b0>")
-            self.assertEqual(type(results[0]).__module__.split(".")[0], "babeldoc")
+            result = provider.translate_document(document)
+            self.assertEqual(len(result), 1)
+            self.assertEqual(result[0].approval_id, approval.approval_id)
+            self.assertEqual(result[0].unit_key, approval.unit_key)
+            self.assertEqual(result[0].unit_revision, approval.unit_revision)
+            self.assertEqual(result[0].target_text, "你好")
+            self.assertEqual(type(result[0]).__module__.split(".")[0], "babeldoc")
+
+    def test_blocker_manifest_is_persisted_and_resolution_stops(self) -> None:
+        context, artifact, document = make_external_document(blocker=True)
+        with tempfile.TemporaryDirectory() as directory:
+            provider = SQLiteDocumentTranslationProvider(
+                Path(directory) / "project.sqlite3"
+            )
+            provider.save_prepared_artifact(context, artifact)
+            with self.assertRaises(DocumentTranslationBlockedError):
+                provider.translate_document(document)
+            with provider._store() as store:
+                self.assertEqual(store.status()["blockers"], 1)
+
+    def test_same_context_cannot_be_rebound_to_different_artifact(self) -> None:
+        context, artifact, _document = make_external_document()
+        with tempfile.TemporaryDirectory() as directory:
+            provider = SQLiteDocumentTranslationProvider(
+                Path(directory) / "project.sqlite3"
+            )
+            provider.save_prepared_artifact(context, artifact)
+            changed = PreparedILArtifact.create(context, "<document changed='1'/>\n")
+            with self.assertRaises(SnapshotConflictError):
+                provider.save_prepared_artifact(context, changed)
 
 
 if __name__ == "__main__":

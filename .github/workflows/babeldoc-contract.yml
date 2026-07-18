@@ -1,4 +1,4 @@
-name: babeldoc-contract
+name: babeldoc-product-contract
 
 on:
   push:
@@ -14,5 +14,13 @@ jobs:
           python-version: "3.12"
       - run: python -m pip install --upgrade pip
       - run: python -m pip install -e '.[babeldoc,dev]'
-      - run: ruff check src tests
-      - run: python -m pytest tests/test_babeldoc_adapter.py
+      - name: Fetch the licensed CJK integration font
+        run: |
+          curl --fail --location --retry 3 \
+            --output "$RUNNER_TEMP/SourceHanSerifSC.zip" \
+            https://github.com/adobe-fonts/source-han-serif/releases/download/2.003R/09_SourceHanSerifSC.zip
+          unzip -j "$RUNNER_TEMP/SourceHanSerifSC.zip" \
+            '*SourceHanSerifSC-Regular.otf' -d "$RUNNER_TEMP"
+          echo "PUBTRANS_TEST_CJK_FONT=$RUNNER_TEMP/SourceHanSerifSC-Regular.otf" >> "$GITHUB_ENV"
+      - run: ruff check .
+      - run: python -m pytest -q
