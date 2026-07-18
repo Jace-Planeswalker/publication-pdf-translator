@@ -1,0 +1,36 @@
+{
+  "entries": [
+    {
+      "source_term": "entropy",
+      "sense_id": "entropy.thermodynamics.v1",
+      "target_form": "熵",
+      "stance": "SUPPORTS",
+      "kind": "AUTHORITY_TERMBANK",
+      "tier": "A_AUTHORITY",
+      "source_key": "2329a424142f5446f128ea3096f6b3f0f8ab1dca08e0e7712b3d88a14e7218fd",
+      "source_uri": "urn:example:replace-with-captured-authority-record",
+      "source_title": "Replace with the captured authority record title",
+      "excerpt": "Replace with a short, exact excerpt containing 熵 in this sense.",
+      "retrieved_on": "2026-07-17",
+      "sense_match": false,
+      "domain_match": false,
+      "notes": "Example only; replace every field with auditable evidence."
+    },
+    {
+      "source_term": "entropy",
+      "sense_id": "entropy.thermodynamics.v1",
+      "target_form": "熵",
+      "stance": "SUPPORTS",
+      "kind": "CORPUS_ATTESTATION",
+      "tier": "C_CORPUS",
+      "source_key": "89134a4d1674e3ff6c0a4eaf6b2c49f6c95d5ee498f86bd25e246ffbd1b09449",
+      "source_uri": "urn:example:replace-with-independent-corpus-record",
+      "source_title": "Replace with an independent Chinese publication",
+      "excerpt": "Replace with a short, exact domain-matched usage excerpt containing 熵.",
+      "retrieved_on": "2026-07-17",
+      "sense_match": false,
+      "domain_match": false,
+      "notes": "A second page from the same publisher is not independent evidence."
+    }
+  ]
+}
