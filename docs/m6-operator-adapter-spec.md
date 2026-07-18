@@ -92,6 +92,10 @@ All filesystem arguments must be absolute. Bootstrap, init, start and collect
 are idempotent writes; doctor, poll and status are read-only. API keys are not
 tool schema fields and are inherited only through named environment variables.
 
+The repo marketplace at `.agents/plugins/marketplace.json` points to the plugin
+bundle, allowing Codex to add the GitHub repository as a marketplace and install
+the plugin without copying directories or editing configuration by hand.
+
 `start` repeats doctor checks, holds an exclusive launch lock and refuses to
 duplicate a live job. A small detached runner writes JSON task state plus
 stdout/stderr log paths under `<project>/control/jobs/`. `poll` combines that

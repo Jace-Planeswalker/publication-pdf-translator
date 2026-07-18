@@ -103,7 +103,17 @@ changed after release, `status` reports `BLOCKED`.
 
 The plugin bundle under [`plugins/publication-pdf-translator`](plugins/publication-pdf-translator)
 ships a local stdio MCP server and the canonical `translate-publication-pdf`
-Skill. The MCP surface is intentionally operational:
+Skill. The repository includes a marketplace catalog, so Codex CLI users can
+install it directly from GitHub:
+
+```bash
+codex plugin marketplace add Jace-Planeswalker/publication-pdf-translator --ref main
+codex plugin add publication-pdf-translator@publication-pdf-translator
+```
+
+Restart the ChatGPT desktop app or begin a new Codex thread after installation
+so the new Skill and MCP server are loaded. The MCP surface is intentionally
+operational:
 
 - `pubtrans_bootstrap` installs the immutable `release/v0.3.0` application ref
   in an isolated runtime;
