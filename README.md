@@ -18,7 +18,9 @@ approvals, rendering and final-PDF checks all have durable state.
   recovery, budgets, releases and artifact verification.
 - There is no LaTeX or DOCX pipeline: the product target is a restored-layout
   translated PDF.
-- The included Skill/plugin is a thin launcher and monitor. It never translates
+- The included Skill/plugin is an engineered control plane: a dependency-free
+  adapter exposes bootstrap, initialization, preflight, background execution,
+  polling, status and verified collection through local MCP. It never translates
   a book in chat or keeps a second state ledger.
 
 The BabelDOC provider seam is pinned to the audited
@@ -57,39 +59,63 @@ cp examples/evidence.example.json evidence.json
 ```
 
 Edit the examples, set the credential environment variable named in
-`config.json`, then run:
+`config.json`, and keep the project directory outside Git (or explicitly
+ignored). The controlled operator flow is:
 
 ```bash
 export OPENAI_API_KEY='...'
-pubtrans translate source.pdf \
-  --project projects/source-zh \
+pubtrans init /absolute/source.pdf \
+  --project /absolute/projects/source-zh \
   --config config.json \
   --evidence evidence.json
+
+pubtrans doctor /absolute/projects/source-zh
+pubtrans run /absolute/projects/source-zh
+pubtrans status /absolute/projects/source-zh
+pubtrans collect /absolute/projects/source-zh \
+  --destination /absolute/delivery/source-zh
 ```
 
 To use command-line settings instead of a config file:
 
 ```bash
-pubtrans translate source.pdf \
-  --project projects/source-zh \
+pubtrans init /absolute/source.pdf \
+  --project /absolute/projects/source-zh \
   --model '<supported-model>' \
   --source-language en \
   --target-language zh-Hans
 ```
 
-The same command resumes an interrupted or completed project. Inspect it with:
+`run` and `resume` both consume only the content-bound inputs under the project
+and resume interrupted durable state. The older `translate` command remains as
+a compatibility entry point, but is not the plugin's operator contract.
 
-```bash
-pubtrans status projects/source-zh
-```
+Successful project output is written to:
 
-Successful output is written to:
+- `/absolute/projects/source-zh/output/<source>.zh-Hans.verified.pdf`
+- `/absolute/projects/source-zh/output/verification-report.json`
 
-- `projects/source-zh/output/<source>.zh-Hans.verified.pdf`
-- `projects/source-zh/output/verification-report.json`
+`collect` copies only those revalidated bytes and adds a
+`delivery-manifest.json` with SHA-256 digests. If an output PDF is deleted or
+changed after release, `status` reports `BLOCKED`.
 
-Only a passing, content-addressed artifact is published. If an output PDF is
-deleted or changed after release, `status` reports `BLOCKED`.
+## Codex plugin and Skill
+
+The plugin bundle under [`plugins/publication-pdf-translator`](plugins/publication-pdf-translator)
+ships a local stdio MCP server and the canonical `translate-publication-pdf`
+Skill. The MCP surface is intentionally operational:
+
+- `pubtrans_bootstrap` installs the immutable `release/v0.3.0` application ref
+  in an isolated runtime;
+- `pubtrans_init`, `pubtrans_doctor`, `pubtrans_start`, `pubtrans_poll` and
+  `pubtrans_status` implement the durable state machine;
+- `pubtrans_collect` releases only a verified PDF, verification report and
+  content-addressed delivery manifest.
+
+Paths passed through MCP must be absolute. Secrets are inherited from the
+environment and are never MCP arguments. Background task records and logs stay
+inside the durable project so a new chat or MCP process can continue monitoring
+the same build.
 
 ## Configuration and terminology
 
@@ -118,7 +144,8 @@ resume.
 
 ## Design and provenance
 
-Start with the [M5 product specification](docs/m5-product-spec.md),
+Start with the [M6 operator-adapter specification](docs/m6-operator-adapter-spec.md),
+[M5 product specification](docs/m5-product-spec.md),
 [architecture](docs/architecture.md), and
 [research/adoption record](docs/research-notes.md). Earlier invariant layers are
 documented in the M0–M4 specifications under `docs/`.

@@ -1,0 +1,12 @@
+interface:
+  display_name: "全文出版物 PDF 翻译"
+  short_description: "以证据治理术语、复原原版排版并核验交付完整出版物 PDF"
+  default_prompt: "使用 $translate-publication-pdf 将这份完整出版物翻译为复原排版的中文 PDF，并持续执行到真实成品核验通过。"
+dependencies:
+  tools:
+    - type: "mcp"
+      value: "publication-pdf-translator"
+      description: "固定版本运行时的初始化、体检、续跑、状态和成品收集工具"
+      transport: "stdio"
+policy:
+  allow_implicit_invocation: true

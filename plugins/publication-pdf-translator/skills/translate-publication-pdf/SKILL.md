@@ -1,66 +1,80 @@
 ---
 name: translate-publication-pdf
-description: Create, resume, inspect, or repair a complete publication PDF translation that must preserve the source layout through BabelDOC, use evidence-governed terminology, and emit a verified final PDF. Use for books, papers, reports, manuals, and other full PDFs; do not use for short passages, summaries, ordinary explanations, or requests whose primary deliverable is DOCX or LaTeX.
+description: 将完整外文出版物创建、续跑、检查或修复为复原排版的中文 PDF，并要求 BabelDOC 版式恢复、证据治理术语和真实成品核验。用于书籍、论文、报告、手册等全文 PDF；短句翻译、摘要、普通释义，以及主要交付物是 DOCX/LaTeX 的任务不启用。
 ---
 
-# Translate a publication PDF
+# 全文出版物 PDF 翻译
 
-Use the `publication-pdf-translator` project as the only workflow authority.
-This Skill launches and monitors it; do not translate units in chat, build a
-parallel ledger, or substitute another PDF/LaTeX/DOCX layout pipeline.
+把 `publication-pdf-translator` 运行时视为唯一工作流权威。本 Skill 负责
+调用、监控和按结构化状态排障；不得在对话中另做翻译流水线、术语台账或
+排版中间件。
 
-## Run or resume
+## 不可退让的结果约束
 
-1. Resolve the source PDF, a durable project directory, product config and any
-   operator-supplied terminology evidence. Never place source books, outputs,
-   credentials or state databases in the Git repository.
-2. Ensure `pubtrans` comes from the public
-   `Jace-Planeswalker/publication-pdf-translator` project with its `babeldoc`
-   extra. Do not silently use stock BabelDOC; the project pins its provider
-   fork.
-3. Read credentials only from the environment-variable name in config. Never
-   print, persist or place a secret in command arguments or JSON.
-4. Inspect existing state first:
+- 最终目标是复原排版的中文 PDF，不是 DOCX 或 LaTeX。
+- 解析、布局中间表示、字体排布和 PDF 重建只使用项目固定的 BabelDOC
+  provider fork；不得悄悄换成 stock BabelDOC 或其他排版链。
+- 翻译质量优先于沿用任何人的既有思路。运行时的全文分析、证据型术语、
+  多角色翻译/复核、全书一致性和成品门禁必须完整执行。
+- 只有 `product_state=RELEASED` 且再次核验仍成立，才可交付。
+- API 密钥只从配置指定的环境变量读取。不得把密钥放进参数、JSON、日志、
+  项目目录或回复。
 
-   ```bash
-   pubtrans status <project-directory>
-   ```
+## 标准状态机
 
-5. Start or resume the complete build:
+优先使用本插件提供的 MCP 工具，并始终传绝对路径：
 
-   ```bash
-   pubtrans translate <source.pdf> \
-     --project <project-directory> \
-     --config <config.json> \
-     --evidence <evidence.json>
-   ```
+1. 调用 `pubtrans_bootstrap`。它安装或复用固定发布引用的隔离运行时；不得自行
+   拼装未锁定依赖。
+2. 调用 `pubtrans_status` 查看项目：
+   - `UNINITIALIZED`：调用 `pubtrans_init`，绑定源 PDF、无密钥配置（或模型
+     参数）及可选的术语证据。
+   - `INITIALIZED`、`NEW`、`IN_PROGRESS`、`VERIFYING`：保留原项目继续。
+   - `RELEASED`：跳到第 6 步，但仍需重新核验。
+   - `BLOCKED`：先执行下方的阻断处置，不得重建项目掩盖问题。
+3. 调用 `pubtrans_doctor`。只有 `state=PASS` 才进入运行；`WARN` 检查可以
+   共存于 PASS，但任一 `BLOCK` 必须先解决。
+4. 调用 `pubtrans_start`。它会重复体检、阻止重复任务，并在后台运行或续跑
+   同一耐久项目。
+5. 周期性调用 `pubtrans_poll`，直到：
+   - `RELEASED`：继续交付；
+   - `FAILED` 或 `ORPHANED`：按结构化状态修复后再次 `pubtrans_start`；
+   - `BLOCKED`：报告真实阻断；
+   - 仍为 `RUNNING`：继续监控，不要启动第二份项目。
+6. 调用 `pubtrans_status` 再次核验成品字节。如果不是 `RELEASED`，不得交付。
+7. 调用 `pubtrans_collect`，将核验 PDF、验证报告和交付清单复制到用户指定的
+   绝对目标目录。只返回这三个受控产物。
 
-   Omit `--evidence` only when no captured manual evidence exists; configured
-   web research may still discover and harvest public sources.
-6. Continue until the command returns `RELEASED` or a truthful blocker. On
-   interruption, run the same command again. Do not delete state or force a
-   fresh run merely to make progress appear cleaner.
-7. Re-run `status`. Return the `*.verified.pdf` and
-   `verification-report.json` only when status remains `RELEASED`.
+当 MCP 工具不可用或需要查看字段含义时，才读取
+`references/operations.md`，使用其中等价的 CLI；不要同时运行 MCP 和 CLI
+两套任务。
 
-## Terminology rules
+## 术语质量约束
 
-- Treat model memory, search snippets and citation text as discovery, not
-  evidence. For web material, require an actually fetched page excerpt.
-- Prefer exact sense and domain fit, then mainstream Chinese usage. Do not
-  reward specialist-sounding rarity.
-- Do not describe two pages from one publisher as independent corroboration.
-- Let the runtime derive confidence. Unsupported candidates must expose or
-  retain the source expression; never edit state to force a Chinese form.
-- If an important source is inaccessible, capture a short exact excerpt,
-  durable URI/URN, title, date, edition/page and caveat in the evidence file.
+- 模型记忆、搜索结果摘要和只见标题的页面只能用于发现候选，不算证据。
+- 术语必须先确定本文语义和领域，再比较权威性、独立来源与中文主流用法；
+  不因译名显得生僻或专业就加分。
+- 同一出版机构或同一底层资料的多个页面不算独立佐证。反证和地域/时代差异
+  必须保留。
+- 无法得到足够支持时，宁可保留源语并暴露不确定性，也不得制造一个貌似精准
+  的中文译名，更不得手改数据库强行通过。
+- 对书籍、标准、付费墙等自动检索不到的材料，可让用户提供短原文摘录、稳定
+  URI/URN、书名、版本、页码和日期，作为人工证据文件重新续跑。
 
-## Blockers and repair
+## 阻断处置
 
-Read structured stderr, `pubtrans status`, and
-`output/verification-report.json`. Repair the actual cause—credential/model
-configuration, missing evidence, provider failure, protected structure,
-translation finding, font/layout defect, or mutated output—then resume the same
-project. Never activate a blocked artifact, hand-edit a verified PDF, or report
-success from a model's prose alone. If the published PDF changes, rerun the
-runtime so artifact verification binds the new bytes.
+以 `pubtrans_doctor`、`pubtrans_status`、任务记录和
+`verification-report.json` 为准，修复具体原因：
+
+- 运行时或 provider 阻断：重新执行固定版本 bootstrap；不得换用未审计版本。
+- 凭据/模型阻断：修正环境变量或无密钥配置文件；不复制密钥值。
+- 输入完整性阻断：源 PDF、配置或证据已变化时，不得覆盖原项目。明确创建新
+  项目，或恢复与清单摘要一致的原字节。
+- 术语/翻译阻断：补证据或修正配置后续跑；不得降低质量门槛。
+- 字体/版式/成品阻断：修复字体、BabelDOC 或版式缺陷并让运行时重新渲染、
+  重新核验；不得手工改已验证 PDF。
+- 中断或孤儿任务：确认没有存活任务后对同一项目再次 `pubtrans_start`；不要
+  删除 `state/`、`control/` 或重头伪造进度。
+
+若阻断需要用户提供新的凭据、受版权限制的证据或作出会改变译法的选择，清楚
+报告缺少什么以及为何阻断。除此之外，持续执行到 `RELEASED` 并完成收集。

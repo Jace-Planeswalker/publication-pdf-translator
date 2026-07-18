@@ -1,18 +1,37 @@
 {
   "name": "publication-pdf-translator",
-  "version": "0.2.0",
-  "description": "Run and resume evidence-governed, restored-layout publication PDF translation.",
+  "version": "0.3.0",
+  "description": "Operate a pinned, resumable, evidence-governed publication PDF translation runtime through MCP.",
   "author": {
     "name": "Publication PDF Translator contributors"
   },
+  "homepage": "https://github.com/Jace-Planeswalker/publication-pdf-translator",
+  "repository": "https://github.com/Jace-Planeswalker/publication-pdf-translator",
+  "license": "AGPL-3.0-or-later",
+  "keywords": [
+    "pdf translation",
+    "publication translation",
+    "babeldoc",
+    "terminology evidence",
+    "restored layout",
+    "translation quality"
+  ],
   "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Publication PDF Translator",
     "shortDescription": "Build verified, restored-layout translated PDFs.",
-    "longDescription": "Launch, resume and inspect the publication-pdf-translator runtime without moving translation or layout state into chat.",
+    "longDescription": "Bootstrap, initialize, diagnose, run, resume, inspect and collect verified publication translations without moving translation or layout state into chat.",
     "developerName": "Publication PDF Translator contributors",
     "category": "Productivity",
-    "capabilities": [],
-    "defaultPrompt": "Translate this complete publication PDF and return only a verified restored-layout PDF plus its report."
+    "capabilities": [
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/Jace-Planeswalker/publication-pdf-translator",
+    "defaultPrompt": [
+      "Translate this complete publication PDF and return the verified restored-layout PDF plus its report.",
+      "Resume this publication translation project and continue until its verified PDF is released."
+    ]
   }
 }

@@ -2,6 +2,10 @@
 
 Status: implemented research release
 
+> The M5 translation and artifact contracts remain current. M6 supersedes only
+> the thin operator surface with an executable adapter, local MCP tools and
+> content-bound project control; see `m6-operator-adapter-spec.md`.
+
 ## Product decision
 
 The deliverable is a standalone, resumable Python project. BabelDOC is the

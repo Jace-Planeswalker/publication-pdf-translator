@@ -6,8 +6,9 @@ more Chinese candidates, captured evidence, and an independent review.
 
 ## Import shape
 
-Pass a UTF-8 JSON file with an `entries` array to `pubtrans translate` using
-`--evidence`. See `examples/evidence.example.json` for the complete shape.
+Pass a UTF-8 JSON file with an `entries` array to `pubtrans init` using
+`--evidence`; the initialized project binds its canonicalized contents. See
+`examples/evidence.example.json` for the complete shape.
 
 Each entry records:
 
