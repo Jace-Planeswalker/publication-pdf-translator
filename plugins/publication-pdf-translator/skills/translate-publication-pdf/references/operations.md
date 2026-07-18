@@ -34,18 +34,29 @@
 
 ## 等价 CLI
 
-插件正常时优先使用 MCP。若必须直接操作已安装的运行时：
+插件正常时优先使用 MCP。若 MCP 不可用且尚无运行时，先在 Git 之外创建隔离
+环境并安装固定发布引用（Windows 将 `bin/python` 换成
+`Scripts/python.exe`）：
 
 ```bash
-pubtrans init /absolute/source.pdf \
+python3 -m venv /absolute/runtime/0.3.0
+/absolute/runtime/0.3.0/bin/python -m pip install \
+  'publication-pdf-translator[babeldoc] @ git+https://github.com/Jace-Planeswalker/publication-pdf-translator.git@release/v0.3.0'
+```
+
+随后用该解释器执行等价 CLI：
+
+```bash
+/absolute/runtime/0.3.0/bin/python -m pubtrans init /absolute/source.pdf \
   --project /absolute/project \
   --config /absolute/config.json \
   --evidence /absolute/evidence.json
 
-pubtrans doctor /absolute/project
-pubtrans run /absolute/project
-pubtrans status /absolute/project
-pubtrans collect /absolute/project --destination /absolute/delivery
+/absolute/runtime/0.3.0/bin/python -m pubtrans doctor /absolute/project
+/absolute/runtime/0.3.0/bin/python -m pubtrans run /absolute/project
+/absolute/runtime/0.3.0/bin/python -m pubtrans status /absolute/project
+/absolute/runtime/0.3.0/bin/python -m pubtrans collect /absolute/project \
+  --destination /absolute/delivery
 ```
 
 `run` 与 `resume` 都只采用控制清单绑定的输入；进程中断后执行任一命令都会续跑

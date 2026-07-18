@@ -188,6 +188,11 @@ def test_plugin_bundle_declares_one_canonical_skill_and_local_mcp() -> None:
         (PLUGIN / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8")
     )
     mcp = json.loads((PLUGIN / ".mcp.json").read_text(encoding="utf-8"))
+    marketplace = json.loads(
+        (ROOT / ".agents" / "plugins" / "marketplace.json").read_text(
+            encoding="utf-8"
+        )
+    )
     skill = (
         PLUGIN / "skills" / "translate-publication-pdf" / "SKILL.md"
     ).read_text(encoding="utf-8")
@@ -208,6 +213,21 @@ def test_plugin_bundle_declares_one_canonical_skill_and_local_mcp() -> None:
     assert server["args"] == ["scripts/mcp_server.py"]
     assert server["cwd"] == "."
     assert "OPENAI_API_KEY" in server["env_vars"]
+    assert marketplace["name"] == "publication-pdf-translator"
+    assert marketplace["plugins"] == [
+        {
+            "name": "publication-pdf-translator",
+            "source": {
+                "source": "local",
+                "path": "./plugins/publication-pdf-translator",
+            },
+            "policy": {
+                "installation": "AVAILABLE",
+                "authentication": "ON_INSTALL",
+            },
+            "category": "Productivity",
+        }
+    ]
     for tool in (
         "pubtrans_bootstrap",
         "pubtrans_init",
