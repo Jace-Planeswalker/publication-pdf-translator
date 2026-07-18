@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from collections import Counter
 from pathlib import Path
 from unittest.mock import patch
@@ -76,7 +77,7 @@ class SyntheticLayoutModel:
 
 
 class FixturePlanner:
-    def plan(self, document) -> PlannedTranslation:
+    def plan(self, document, _store) -> PlannedTranslation:
         researcher = actor(ActorRole.TERMINOLOGY_RESEARCHER, "pdf-term-r")
         term_reviewer = actor(ActorRole.BILINGUAL_REVIEWER, "pdf-term-v")
         evidence = tuple(
@@ -365,8 +366,11 @@ def create_source_pdf(path: Path) -> None:
 
 def test_real_pdf_runs_prepare_quality_bus_and_babeldoc_restore(tmp_path: Path) -> None:
     font_path = Path(
-        "/workspace/bersani_delivery_run/layout/fonts/source-han-serif-sc/"
-        "SourceHanSerifSC-Regular.otf"
+        os.environ.get(
+            "PUBTRANS_TEST_CJK_FONT",
+            "/workspace/bersani_delivery_run/layout/fonts/source-han-serif-sc/"
+            "SourceHanSerifSC-Regular.otf",
+        )
     )
     if not font_path.is_file():
         pytest.skip("Source Han Serif SC integration font is unavailable")

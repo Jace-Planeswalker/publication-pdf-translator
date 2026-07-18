@@ -13,11 +13,10 @@ from pubtrans.babeldoc_adapter import SQLiteDocumentTranslationProvider
 from pubtrans.m0v2.errors import ApprovalSetError
 from pubtrans.m0v2.model import PreparedDocument
 from pubtrans.m1.kernel import TranslationKernel
-from pubtrans.m1.plan import KernelPlan
 from pubtrans.m1.services import ServiceBundle
-from pubtrans.m1.terminology import TerminologySnapshot
 from pubtrans.m1.workflow import Release
 from pubtrans.m2.store import RecoveryStore
+from pubtrans.planning import PlannedTranslation
 
 from .errors import PDFLoopContractError
 
@@ -30,21 +29,12 @@ class RenderPhase(str, Enum):
     FINAL = "FINAL"
 
 
-@dataclass(frozen=True, slots=True)
-class PlannedTranslation:
-    terminology: TerminologySnapshot
-    plan: KernelPlan
-
-    def validate(self, document: PreparedDocument) -> None:
-        self.terminology.validate_against(document)
-        self.plan.validate_against(
-            document=document,
-            terminology=self.terminology,
-        )
-
-
 class TranslationPlanner(Protocol):
-    def plan(self, document: PreparedDocument) -> PlannedTranslation: ...
+    def plan(
+        self,
+        document: PreparedDocument,
+        store: RecoveryStore,
+    ) -> PlannedTranslation: ...
 
 
 class KernelServiceFactory(Protocol):
@@ -111,7 +101,7 @@ class BabelDOCPDFLoop:
             artifact = store.load_artifact_reference()
             provider.artifact_store.verify(artifact)
             previously_rendered_release = store.load_active_release()
-            planned = self.planner.plan(document)
+            planned = self.planner.plan(document, store)
             planned.validate(document)
             services = self.service_factory.create(
                 store=store,
